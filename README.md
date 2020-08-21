@@ -1,5 +1,5 @@
 # DotNetInteractive
-Repository for my .Net Jupyter Notebooks running on [.Net Interactive](https://github.com/dotnet/interactive)
+Repository for my .Net Jupyter Notebooks running on [.Net Interactive](https://github.com/dotnet/interactive). Click the buttom below to explorer the notebooks
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/Expecho/DotNetInteractive/master?urlpath=lab)
 
