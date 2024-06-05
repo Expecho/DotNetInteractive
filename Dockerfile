@@ -1,6 +1,9 @@
-FROM jupyter/base-notebook:latest
+#build with: docker build --build-arg base_image=jupyter/minimal-notebook -t pocki/minimal-dotnet8:latest -t pocki/minimal-dotnet8:20210523 .
+#build with: docker build --build-arg base_image=jupyter/scipy-notebook -t pocki/scipy-dotnet8:latest -t pocki/scipy-dotnet8:20210523 .
+#build with: docker build --build-arg base_image=jupyter/r-notebook -t pocki/r-dotnet8:latest -t pocki/r-dotnet8:20210523 .
 
-# Install .NET CLI dependencies
+ARG base_image=jupyter/minimal-notebook
+FROM ${base_image} as base
 
 ARG NB_USER=jovyan
 ARG NB_UID=1000
@@ -24,26 +27,26 @@ ENV \
     # Opt out of telemetry until after we install jupyter when building the image, this prevents caching of machine id
     DOTNET_TRY_CLI_TELEMETRY_OPTOUT=true
 
-# Install .NET CLI dependencies
+# Install .NET CLI dependencies for Ubuntu 22.04
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libc6 \
-        libgcc1 \
+        libgcc-s1 \
         libgssapi-krb5-2 \
-        libicu66 \
-        libssl1.1 \
+        libicu70 \
+        liblttng-ust1 \
+        libssl3 \
         libstdc++6 \
+        libunwind8 \
         zlib1g \
+        libgdiplus \
     && rm -rf /var/lib/apt/lists/*
 
+ENV DOTNET_SDK_VERSION 8.0.101
 # Install .NET Core SDK
-
-# When updating the SDK version, the sha512 value a few lines down must also be updated.
-ENV DOTNET_SDK_VERSION 3.1.301
-
-RUN dotnet_sdk_version=3.1.301 \
+RUN dotnet_sdk_version=8.0.101 \
     && curl -SL --output dotnet.tar.gz https://dotnetcli.azureedge.net/dotnet/Sdk/$dotnet_sdk_version/dotnet-sdk-$dotnet_sdk_version-linux-x64.tar.gz \
-    && dotnet_sha512='dd39931df438b8c1561f9a3bdb50f72372e29e5706d3fb4c490692f04a3d55f5acc0b46b8049bc7ea34dedba63c71b4c64c57032740cbea81eef1dce41929b4e' \
+    && dotnet_sha512='26df0151a3a59c4403b52ba0f0df61eaa904110d897be604f19dcaa27d50860c82296733329cb4a3cf20a2c2e518e8f5d5f36dfb7931bf714a45e46b11487c9a' \
     && echo "$dotnet_sha512 dotnet.tar.gz" | sha512sum -c - \
     && mkdir -p /usr/share/dotnet \
     && tar -ozxf dotnet.tar.gz -C /usr/share/dotnet \
@@ -53,11 +56,9 @@ RUN dotnet_sdk_version=3.1.301 \
     && dotnet help
 
 # Copy notebooks
-
 COPY ./notebooks/ ${HOME}/notebooks/
 
 # Copy package sources
-
 COPY ./NuGet.config ${HOME}/nuget.config
 
 RUN chown -R ${NB_UID} ${HOME}
@@ -66,20 +67,23 @@ USER ${USER}
 #Install nteract 
 RUN pip install nteract_on_jupyter
 
-# Install lastest build from master branch of Microsoft.DotNet.Interactive from myget
-RUN dotnet tool install -g Microsoft.dotnet-interactive --add-source "https://dotnet.myget.org/F/dotnet-try/api/v3/index.json"
-
-#latest stable from nuget.org
-#RUN dotnet tool install -g Microsoft.dotnet-interactive --add-source "https://api.nuget.org/v3/index.json"
+# Install lastest build from main branch of Microsoft.DotNet.Interactive
+RUN dotnet tool install -g Microsoft.dotnet-interactive
 
 ENV PATH="${PATH}:${HOME}/.dotnet/tools"
-RUN echo "$PATH"
+#RUN echo "$PATH"
+
+#RUN dotnet --list-sdks
 
 # Install kernel specs
 RUN dotnet interactive jupyter install
 
+
+#RUN dotnet tool install -g Microsoft.Quantum.IQSharp
+#RUN dotnet iqsharp install
+
 # Enable telemetry once we install jupyter for the image
 ENV DOTNET_TRY_CLI_TELEMETRY_OPTOUT=false
 
-# Set root to notebooks
+# Set root to Notebooks
 WORKDIR ${HOME}/notebooks/
